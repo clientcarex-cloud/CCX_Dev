@@ -3,16 +3,18 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 /*
 Module Name: CCX Creator
-Description: Adds a simple CCX Creator page to the Perfex CRM sidebar.
+Description: Low-code builder for bespoke pages, forms, and workflows inside Perfex CRM.
 Version: 1.0.0
 Author: CCX Team
 */
 
 define('CCX_CREATOR_MODULE_NAME', 'ccx_creator');
+define('CCX_CREATOR_MODULE_VERSION', '1.0.0');
 
 register_activation_hook(CCX_CREATOR_MODULE_NAME, 'ccx_creator_module_activation_hook');
 register_deactivation_hook(CCX_CREATOR_MODULE_NAME, 'ccx_creator_module_deactivation_hook');
 
+hooks()->add_action('admin_init', 'ccx_creator_register_permissions');
 hooks()->add_action('admin_init', 'ccx_creator_register_menu');
 
 /**
@@ -42,12 +44,38 @@ function ccx_creator_register_menu(): void
         return;
     }
 
+    if (! (is_admin() || staff_can('view', 'ccx_creator') || staff_can('view_own', 'ccx_creator'))) {
+        return;
+    }
+
     $CI = &get_instance();
 
     $CI->app_menu->add_sidebar_menu_item('ccx-creator', [
         'name'     => 'CCX Creator',
-        'icon'     => 'fa fa-magic',
+        'icon'     => 'fa fa-cubes',
         'href'     => admin_url('ccx_creator'),
         'position' => 35,
     ]);
+}
+
+/**
+ * Register CCX Creator permissions.
+ */
+function ccx_creator_register_permissions(): void
+{
+    if (! function_exists('register_staff_capabilities')) {
+        return;
+    }
+
+    $capabilities = [
+        'capabilities' => [
+            'view'     => _l('permission_view'),
+            'view_own' => _l('permission_view_own'),
+            'create'   => _l('permission_create'),
+            'edit'     => _l('permission_edit'),
+            'delete'   => _l('permission_delete'),
+        ],
+    ];
+
+    register_staff_capabilities('ccx_creator', $capabilities, 'CCX Creator');
 }
