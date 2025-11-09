@@ -50,4 +50,83 @@ function ccx_creator_register_menu(): void
         'href'     => admin_url('ccx_creator'),
         'position' => 35,
     ]);
+
+    foreach (ccx_creator_sections() as $section) {
+        $CI->app_menu->add_sidebar_children_item('ccx-creator', [
+            'slug'     => $section['slug'],
+            'name'     => $section['label'],
+            'href'     => $section['href'],
+            'icon'     => $section['icon'],
+            'position' => $section['position'],
+        ]);
+    }
+}
+
+/**
+ * Central definition for module sub-sections/menu entries.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function ccx_creator_sections(): array
+{
+    $baseUrl = 'ccx_creator';
+
+    return [
+        [
+            'key'      => 'menus',
+            'slug'     => 'ccx_creator_menus',
+            'label'    => 'Menus',
+            'icon'     => 'fa fa-list-ul',
+            'href'     => admin_url($baseUrl . '/menus'),
+            'position' => 1,
+        ],
+        [
+            'key'      => 'pages',
+            'slug'     => 'ccx_creator_pages',
+            'label'    => 'Pages',
+            'icon'     => 'fa fa-file-text-o',
+            'href'     => admin_url($baseUrl . '/pages'),
+            'position' => 2,
+        ],
+        [
+            'key'      => 'forms',
+            'slug'     => 'ccx_creator_forms',
+            'label'    => 'Forms',
+            'icon'     => 'fa fa-check-square-o',
+            'href'     => admin_url($baseUrl . '/forms'),
+            'position' => 3,
+        ],
+        [
+            'key'      => 'pop_up',
+            'slug'     => 'ccx_creator_pop_up',
+            'label'    => 'Pop-up',
+            'icon'     => 'fa fa-commenting-o',
+            'href'     => admin_url($baseUrl . '/pop_up'),
+            'position' => 4,
+        ],
+        [
+            'key'      => 'charts',
+            'slug'     => 'ccx_creator_charts',
+            'label'    => 'Charts',
+            'icon'     => 'fa fa-pie-chart',
+            'href'     => admin_url($baseUrl . '/charts'),
+            'position' => 5,
+        ],
+        [
+            'key'      => 'dashboard',
+            'slug'     => 'ccx_creator_dashboard',
+            'label'    => 'Dashboard',
+            'icon'     => 'fa fa-tachometer',
+            'href'     => admin_url($baseUrl . '/dashboard'),
+            'position' => 6,
+        ],
+        [
+            'key'      => 'master_data',
+            'slug'     => 'ccx_creator_master_data',
+            'label'    => 'Master Data',
+            'icon'     => 'fa fa-database',
+            'href'     => admin_url($baseUrl . '/master_data'),
+            'position' => 7,
+        ],
+    ];
 }
