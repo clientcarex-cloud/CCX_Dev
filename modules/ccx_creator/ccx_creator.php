@@ -16,6 +16,7 @@ register_deactivation_hook(CCX_CREATOR_MODULE_NAME, 'ccx_creator_module_deactiva
 
 hooks()->add_action('admin_init', 'ccx_creator_register_permissions');
 hooks()->add_action('admin_init', 'ccx_creator_register_menu');
+hooks()->add_action('app_init', 'ccx_creator_maybe_run_migrations');
 
 /**
  * Installation tasks for CCX Creator.
@@ -33,6 +34,18 @@ function ccx_creator_module_deactivation_hook(): void
 {
     require_once __DIR__ . '/install.php';
     ccx_creator_uninstall();
+}
+
+/**
+ * Ensure schema is up to date even if the module was installed before Stage 2.
+ */
+function ccx_creator_maybe_run_migrations(): void
+{
+    if (! function_exists('ccx_creator_run_migrations')) {
+        require_once __DIR__ . '/install.php';
+    }
+
+    ccx_creator_run_migrations();
 }
 
 /**
