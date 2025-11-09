@@ -60,6 +60,8 @@ function ccx_creator_register_menu(): void
             'position' => $section['position'],
         ]);
     }
+
+    ccx_creator_register_dynamic_navigation($CI);
 }
 
 /**
@@ -129,4 +131,51 @@ function ccx_creator_sections(): array
             'position' => 7,
         ],
     ];
+}
+
+/**
+ * Register user-authored menus directly into the Perfex sidebar.
+ */
+function ccx_creator_register_dynamic_navigation($CI): void
+{
+    if (! method_exists($CI, 'load')) {
+        return;
+    }
+
+    if (! class_exists('Ccx_creator_model')) {
+        $CI->load->model('ccx_creator/ccx_creator_model', 'creatorModel');
+    }
+
+    if (! isset($CI->creatorModel)) {
+        return;
+    }
+
+    $menus = $CI->creatorModel->get_active_menus_for_staff(get_staff_user_id());
+
+    if (empty($menus)) {
+        return;
+    }
+
+    foreach ($menus as $menu) {
+        $CI->app_menu->add_sidebar_menu_item($menu['slug'], [
+            'name'     => $menu['name'],
+            'icon'     => $menu['icon'],
+            'href'     => admin_url('ccx_creator/menu/' . $menu['slug']),
+            'position' => 200 + (int) $menu['id'],
+        ]);
+
+        if (empty($menu['submenus'])) {
+            continue;
+        }
+
+        foreach ($menu['submenus'] as $submenu) {
+            $CI->app_menu->add_sidebar_children_item($menu['slug'], [
+                'slug'     => $menu['slug'] . '-' . $submenu['slug'],
+                'name'     => $submenu['name'],
+                'href'     => admin_url('ccx_creator/menu/' . $menu['slug'] . '/' . $submenu['slug']),
+                'icon'     => $submenu['icon'],
+                'position' => (int) ($submenu['position'] ?? 1),
+            ]);
+        }
+    }
 }
