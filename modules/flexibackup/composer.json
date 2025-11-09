@@ -1,0 +1,13 @@
+{
+    "require": {
+        "league/flysystem": "^2.0",
+        "league/flysystem-ftp": "^2.4",
+        "league/flysystem-aws-s3-v3": "^2.5",
+        "league/flysystem-sftp-v3": "^2.5",
+        "masbug/flysystem-google-drive-ext": "^2.2",
+        "krizalys/onedrive-php-sdk": "^3.2"
+    },
+    "config": {
+        "platform-check": false
+    }
+}

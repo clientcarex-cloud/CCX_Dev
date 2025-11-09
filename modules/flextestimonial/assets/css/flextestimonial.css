@@ -1,0 +1,541 @@
+/** Manage  Design Section */
+.flex-testimonial-manage-wrapper > .panel-body{
+    min-height: 80vh;
+}   
+.flex-testimonial-manage-wrapper .panel-heading{
+    background-color: #fff;
+    padding: 10px;
+}
+.flex-testimonial-manage-wrapper .panel-heading .icon-styles i{
+    font-size: 18px;
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-1 {
+    color: #4CAF50; /* Fresh Green */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-2 {
+    color: #2196F3; /* Material Blue */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-3 {
+    color: #9C27B0; /* Royal Purple */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-4 {
+    color: #FF5722; /* Deep Orange */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-5 {
+    color: #009688; /* Teal */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-6 {
+    color: #607D8B; /* Blue Grey */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-7 {
+    color: #E91E63; /* Pink */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-8 {
+    color: #795548; /* Brown */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-9 {
+    color: #673AB7; /* Deep Purple */
+}
+
+.flex-testimonial-manage-wrapper .panel-heading .icon-color-10 {
+    color: #00BCD4; /* Cyan */
+}
+
+
+/** Display Section */
+.flextestimonial-display-content {
+    min-width: 400px;
+}
+.flextestimonial-display{
+    padding: 20px;
+    position: relative; 
+    overflow: hidden;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flextestimonial-display .bubble {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.flextestimonial-display .bubble-1 {
+    width: 60px;
+    height: 60px;
+    top: 5%;
+    left: 5%;
+    animation: flextestimonial_float 8s infinite ease-in-out;
+}
+
+.flextestimonial-display .bubble-2 {
+    width: 40px;
+    height: 40px;
+    left: 10%;
+    animation: flextestimonial_float 10s infinite ease-in-out;
+    animation-delay: -2s;
+}
+
+.flextestimonial-display .bubble-3 {
+    width: 80px;
+    height: 80px;
+    top: 10%;
+    right: 10%;
+    animation: flextestimonial_float 12s infinite ease-in-out;
+    animation-delay: -4s;
+}
+
+.flextestimonial-display .bubble-4 {
+    width: 50px;
+    height: 50px;
+    top: 10%;
+    animation: flextestimonial_float 9s infinite ease-in-out;
+    animation-delay: -6s;
+}
+
+@keyframes flextestimonial_float {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+    }
+    25% {
+        transform: translateY(-30px) translateX(10px);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translateY(-60px) translateX(-10px);
+        opacity: 1;
+    }
+    75% {
+        transform: translateY(-90px) translateX(10px);
+        opacity: 0.8;
+    }
+    90% {
+        opacity: 0;
+    }
+}
+
+/** Rating Section */
+.flex-testimonial-rating {
+    display: flex;
+}
+
+.flex-testimonial-rating .flex-testimonial-rating-star {
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.flex-testimonial-rating .flex-testimonial-rating-star i {
+    font-size: 24px;
+    color: #ccc; /* Default color */
+    transition: color 0.3s ease;
+    transform: scale(1);
+}
+
+.flex-testimonial-rating .flex-testimonial-rating-star-input {
+    display: none;
+}
+
+/* Hover effect */
+form .flex-testimonial-rating .flex-testimonial-rating-star:hover i,
+.testimonial-preview-section .flex-testimonial-rating .flex-testimonial-rating-star:hover i{
+    color: #ffd700;
+    transition: color 0.3s ease;
+    transform: scale(1.1);
+}
+
+.flex-testimonial-rating .flex-testimonial-rating-star.active i{
+    color: #ffd700;
+}
+
+/** Video Section */
+.flex-testimonial-upload-input{
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    height: 0px;
+}
+.flex-testimonial-video-placeholder{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.flex-testimonial-upload-label{
+    cursor: pointer;
+    padding: 10px 20px;
+    color: #fff;
+    border-radius: 5px;
+    display: block;
+    width: 100%;
+    text-align: center;
+    background-color: gray;
+}
+
+.flex-testimonial-video-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+    transform: scaleX(-1); /* Mirror the video for self-view */
+}
+
+.flex-testimonial-video-recording-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-testimonial-video-recording-container .video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.flex-testimonial-video-recording-container .record-button,
+.flex-testimonial-video-recording-container .stop-button,
+.flex-testimonial-video-recording-container .retry-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    margin: 0 5px;
+}
+
+.flex-testimonial-video-recording-container .record-button {
+    background: #dc3545;
+}
+
+.flex-testimonial-video-recording-container .stop-button {
+    background: #6c757d;
+}
+
+.flex-testimonial-video-recording-container .retry-button {
+    background: #ffc107;
+}
+
+.flex-testimonial-video-recording-container .record-button:hover,
+.flex-testimonial-video-recording-container .stop-button:hover,
+.flex-testimonial-video-recording-container .retry-button:hover {
+    opacity: 0.9;
+}
+
+.flex-testimonial-user-photo{
+    max-height:50px;
+    max-width:50px; 
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/** Thankyou Section */
+.flex-testinomial-facebook-bg{
+    background-color: #1877F2;
+}
+.flex-testinomial-twitter-bg{
+    background-color: #000000;
+}
+.flex-testinomial-whatsapp-bg{
+    background-color: #25D366;
+}
+.flex-testinomial-linkedin-bg{
+    background-color: #0077B5;
+}
+.flex-testinomial-copy-link-bg{
+    background-color: #6B7280;
+}
+.flex-testinomial-thankyou-cta-button:hover,
+.flex-testinomial-social-share-container a:hover{
+    color: #fff;
+}
+
+.flex-testimonial-back-icon{
+    position: absolute;
+    top: 5px;
+    right: 30px;
+    color: #000;
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 100;
+    background-color: #f2f4f6;
+    padding: 8px 12px;
+    border-radius: 50%;
+    border: 1px solid #f2f4f6;
+    transition: all 0.3s ease;
+}
+.flex-testimonial-back-icon:hover{
+    background-color:#fff;
+    border: 1px solid #fff;
+    transition: all 0.3s ease;
+}
+
+.flextestimonial-display-content .navbar-brand{
+    padding: 0;
+}
+
+.flextestimonial-display-content .navbar-brand img{
+    max-width: 125px;
+    max-height: 34px;
+}
+
+/** Frontend Section */
+.flextestimonial-display-content-section-text-response,
+.flextestimonial-display-content-section-video-response,
+.flextestimonial-display-content-section-customer-info{
+    display: none;
+}
+.flextestimonial-display-content-section-welcome{
+    display: block;
+}
+
+.shake{
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    50% { transform: translateX(10px); }
+    75% { transform: translateX(-10px); }
+    100% { transform: translateX(0); }
+}
+
+/** Responses Section */
+.flex-testimonial-video{
+    object-fit: cover;
+    max-height: 200px;
+}
+.flex-testimonial-responses-table video{
+    max-height: 200px;
+    max-width: 300px;
+}
+
+.flex-testimonial-responses-table .flex-testimonial-img-link{
+    height: 100px;
+    width: 100px;
+    display:inline-block;
+}
+.flex-testimonial-responses-table .flex-testimonial-img-link img{
+    height: 100px;
+    width: 100px;
+    object-fit: cover;
+}
+
+.flex-testimonial-user-photo{
+    height: 50px;
+    width: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.flextestimonial-wall-of-love video::-webkit-media-controls-panel,
+.flextestimonial-display video::-webkit-media-controls-panel {
+    background-image: linear-gradient(transparent, rgba(0,0,0,0.3));
+}
+.flextestimonial-wall-of-love video::-webkit-media-controls-current-time-display,
+.flextestimonial-display video::-webkit-media-controls-current-time-display,
+.flextestimonial-display video::-webkit-media-controls-time-remaining-display {
+    color: #fff;
+}
+
+.flextestimonial-display #flex-testimonial-final-video {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/** Slider Section */
+
+.flex-testimonial-slider {
+    position: relative;
+    margin-top: 1rem;
+}
+.flex-testimonial-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.flextestimonial-wall-of-love .flex-testimonial-container,
+.flextestimonial-display .flex-testimonial-video{
+    height: 300px;
+}
+.flex-testimonial-image {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.flex-testimonial-image.active {
+    opacity: 1;
+}
+.flex-testimonial-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+.flex-testimonial-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+.flex-testimonial-nav-btn.prev {
+    left: 8px;
+}
+.flex-testimonial-nav-btn.next {
+    right: 8px;
+}
+.flex-testimonial-dots {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+}
+.flex-testimonial-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.3s ease;
+}
+.flex-testimonial-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+.flex-testimonial-dot.active {
+    background: rgba(255, 255, 255, 1);
+}
+
+/** Style for share form */
+.flex-testinomial-social-share-container svg,
+.flex-testimonial-share-wrapper svg{
+    height: 50px;
+    max-width: 40px;
+}
+
+.flex-testimonial-share-wrapper .flex-testimonial-code-wrapper {
+    padding: 20px;
+    background-color: rgb(31 41 55);
+    position: relative;
+    overflow: hidden;
+    border-radius: 5px;
+}
+
+.flex-testimonial-share-wrapper .flex-testimonial-code-wrapper code{
+    color: #fff;
+    background-color: rgb(31 41 55);
+    overflow-wrap: break-word;
+}
+
+.flex-testimonial-share-wrapper .flex-testimonial-code-wrapper .flex-testimonial-copy-code-btn {
+    position: absolute;
+    right: 10px;
+    color: #fff;
+}
+
+.flex-min-form-wrapper{
+    max-width: 800px;
+
+}
+
+.flextestimonial-display-content .tw-text-gray-600{
+    color: gray;
+}
+
+.flextestimonial-wall-of-love .tw-grid-masonry {
+    margin: 0 auto;
+}
+.flextestimonial-wall-of-love .tw-grid-sizer {
+    display: none;
+}
+.flextestimonial-wall-of-love .tw-grid-item {
+    margin-bottom: 24px; /* Matches the gutter size */
+}
+
+/* Upload Progress Styles */
+.flextestimonial-display-content-section-video-response .upload-progress-container {
+  margin: 15px 0;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  height: 20px;
+}
+
+.flextestimonial-display-content-section-video-response .upload-progress-bar {
+  height: 100%;
+  background-color: #4CAF50;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+.flextestimonial-display-content-section-video-response .upload-progress-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #000;
+  font-size: 12px;
+  line-height: 20px;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Recording time and size display */
+.flextestimonial-display-content-section-video-response .recording-info {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+.flextestimonial-display-content-section-video-response .recording-time-display,
+.flextestimonial-display-content-section-video-response .recording-size-display {
+  padding: 5px 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}

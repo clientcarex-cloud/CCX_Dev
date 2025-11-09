@@ -1,0 +1,16 @@
+.remote-storage-options input[type="radio"] {
+    opacity: 0;
+}
+
+.remote-storage-options label{
+    cursor: pointer;
+    min-width: 50%;
+}
+
+.remote-storage-options label:hover {
+    background-color: #f5f5f5;
+}
+
+.remote-storage-options input[type="radio"]:checked + label {
+    background-color: #f5f5f5;
+}

@@ -1,0 +1,26 @@
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Facebook Leads Integration"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Feedback Templates"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Feedback Template Setup"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "SMS, Email, WhatsApp Templates"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Templates"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Display"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Counter"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Call"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "SMS Spark"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Enquiry Type"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Patient Response"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Patient Priority"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "Patient Source"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "chief_complaint"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "treatment_sub_type"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "treatment_procedure"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "lab_work"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "lab_followup"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "suggested_diagnostics"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "case_remark"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "message_settings"
+ERROR - 2025-07-23 10:23:34 --> Could not find the language line "WhatsApp"
+ERROR - 2025-07-23 10:23:34 --> Severity: error --> Exception: Expression #96 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'pcsamrautismcom_crm.pt.id' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by /home/pcsamrautismcom/public_html/system/database/drivers/mysqli/mysqli_driver.php 307
+ERROR - 2025-07-23 04:53:35 --> 404 Page Not Found: /index

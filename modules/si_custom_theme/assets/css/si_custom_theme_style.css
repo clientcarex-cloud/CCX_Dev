@@ -1,0 +1,165 @@
+#header{
+	border-bottom:0px;
+}
+.screen-options-btn {
+	border:none;
+}
+.admin #side-menu, .admin #setup-menu,.admin #setup-menu-wrapper{
+	background-position: left top;
+	background-size: cover;
+}
+.admin #side-menu>li, .admin #setup-menu>li{
+	
+	border-left: 3px solid transparent;
+    -webkit-transition: border-left-color 0.4s ease;
+    -o-transition: border-left-color 0.4s ease;
+    transition: border-left-color 0.4s ease;
+}
+.task-single-col-right {
+    border-left: 1px solid #eeeeee;
+}
+.admin #side-menu li .nav-second-level li.active a,.admin #setup-menu li .nav-second-level li.active a{
+	border-radius:5px;
+}
+/*for task kanban view
+#kan-ban li, #kan-ban ul{color:#666666}*/
+/*panel shadow*/
+.panel_s:not(.no-shadow) {
+	-o-box-shadow: 3px -1px 10px 1px rgb(19 17 17 / 20%);
+    -webkit-box-shadow: 3px -1px 10px 1px rgb(19 17 17 / 20%);
+    box-shadow: 3px -1px 10px 1px rgb(19 17 17 / 20%);
+	border-radius: 7px;
+}
+#top_search input{
+	border-radius:35px;
+}
+.fn-gantt .rightPanel .month,.fn-gantt .rightPanel .year,.fn-gantt .sa, .fn-gantt .sn,.fn-gantt .day, .fn-gantt .date{
+	text-shadow:none;
+}
+/*for Perfex V3.0*/
+/* Quick links on top header*/
+.navbar-nav .tw-bg-primary-600	{
+	--tw-bg-opacity: 0;
+	border: 1px solid rgba(226,232,240,.6);
+	border-radius: 0.375rem;
+}
+.navbar-nav .tw-group:hover .group-hover\:\!tw-bg-primary-700	{
+	--tw-bg-opacity: 0 !important;
+	background-color: rgba(241,245,249,.6)!important;
+}	
+/* To show default set admin page text in view invoice and estimets etc*/
+.table>tbody>tr>td, .table>tfoot>tr>td{
+	color:inherit;
+}
+/*to remove white bg from client invoices view*/
+.tw-bg-white {
+    --tw-bg-opacity: 0;
+}
+/*set hedding of client view page*/
+.customer-profile-group-heading{
+	background:inherit;
+}
+/*to match dropdown caret of both bersion of Perfex*/
+.caret{
+	border: solid #1e293b;
+    border-style: solid!important;
+    border-width: 0 2px 2px 0 !important;
+    margin-top: -5.3px !important;
+    padding: 3px;
+    transform: rotate(45deg);
+}
+.panel_s>.hr-panel-separator{
+    margin: 0.1px -1.5px;
+}	
+/*for default background color of dropdown selected/hover/focus element if btn-info is not selected for Perfex V3.0*/
+.dropdown-menu>.active>a, .dropdown-menu>.active>a:focus, .dropdown-menu>.active>a:hover, .dropdown-menu>li>a:focus, .dropdown-menu>li>a:hover{
+	background-color: #03a9f4;
+	color: #fff;
+}
+/*For Quick menu Top Icons on hover*/
+.dropdown-menu>.active>a>i, .dropdown-menu>.active>a:focus>i, .dropdown-menu>.active>a:hover>i, .dropdown-menu>li>a:focus>i, .dropdown-menu>li>a:hover>i{
+	color: #fff !important;
+}
+.bootstrap-select.btn-group.disabled, .bootstrap-select.btn-group>.disabled, .bootstrap-select.disabled, .bootstrap-select>.disabled{
+	background-color: transparent;
+}
+/*change scrollbar*/
+::-webkit-scrollbar {
+  width: 10px;
+}
+/* Track */
+::-webkit-scrollbar-track {
+  background: #9f9d9d; 
+}
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #4a4848; 
+  border-radius:10px;
+}
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #6d6d71; 
+}
+/*lead kanban view expand bg*/
+.kan-ban-expand-top{
+	background-color: transparent;
+}
+/*For Perfex V3.2*/
+#top_search .\!tw-bg-neutral-100{
+    background-color: rgba(203, 213, 225, .3) !important;
+    border-color : transparent !important;
+}
+.tw-bg-neutral-50, .data-\[active\=true\]\:tw-bg-white[data-active=true], .hover\:tw-bg-neutral-200:hover, .nav-tabs-segmented>li.active>a{
+    background-color: rgba(203, 213, 225, .3) !important;
+}
+.modal-content{
+    border-radius: 1rem;
+}
+.modal-header{
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+}
+.modal:not(:has(.modal-footer)) .modal-body, .modal-footer{
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+}
+.fc .fc-day-other {
+    background-color: rgb(249 250 251 / .1);
+}
+nav.customer-tabs>ul{
+    --tw-border-opacity: 1;
+    --tw-bg-opacity: 1;
+    --tw-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05);
+    --tw-shadow-colored: 0 1px 2px 0 #fff;
+    background-color: rgb(255 255 255 / var(--tw-bg-opacity));
+    border-color: rgb(226 232 240 / var(--tw-border-opacity));
+    border-radius: .375rem;
+    border-style: solid;
+    border-width: 1px;
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+nav.customer-tabs>ul>li:first-child a{
+    border-radius: 4px 4px 0 0;
+    margin-top:-1px;
+}
+nav.customer-tabs>ul>li:last-child a{
+    border-radius:  0 0 4px 4px;
+    margin-bottom:-1px;
+}
+nav.customer-tabs>ul>li a{
+    border: 1px solid rgb(226 232 240);
+    border-bottom-width: 1px;
+    border-radius: 0 0 0 0;
+    border-bottom-color: transparent;
+    margin: -2px -1px -1px -1px;
+}
+
+/*for summary box hover in tasks,invoices, estimates*/
+.hover\:tw-bg-neutral-100:hover {
+    --tw-bg-opacity: 0.5;
+    background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+}
+/*disabled pagination text*/
+.pagination>.disabled>a{
+    opacity: 0.5;
+}

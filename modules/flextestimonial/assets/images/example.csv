@@ -1,0 +1,3 @@
+name,email,user_photo,text,rating,job_title,source,date,video_mp4_url,website_url
+John Doe,john.doe@example.com,https://example.com/photos/john.jpg,"The product exceeded our expectations. The team's support was exceptional and the implementation was smooth.",5,CEO,Company Website,2024-03-15,https://example.com/videos/testimonial1.mp4,http://exampleone.com
+Sarah Johnson,sarah.j@example.com,https://example.com/photos/sarah.jpg,"We've seen a 40% increase in productivity since implementing this solution. Highly recommended!",4,Operations Manager,LinkedIn,2024-03-10,https://example.com/videos/testimonial2.mp4,http://exampleurl.com

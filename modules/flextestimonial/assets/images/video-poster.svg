@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="640" height="360" fill="#F3F4F6"/>
+    
+    <!-- Play Button Circle -->
+    <circle cx="320" cy="180" r="60" fill="#1c5be8" opacity="0.9"/>
+    
+    <!-- Play Button Triangle - Centered -->
+    <path d="M300 140L300 220L360 180L300 140Z" fill="white"/>
+    
+    <!-- Optional: Add a subtle gradient overlay -->
+    <rect width="640" height="360" fill="url(#gradient)" opacity="0.1"/>
+    
+    <!-- Gradient definition -->
+    <defs>
+        <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="360" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0.2"/>
+        </linearGradient>
+    </defs>
+</svg> 

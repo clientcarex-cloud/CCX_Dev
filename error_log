@@ -1,0 +1,11 @@
+[11-Aug-2025 02:39:07 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'pcsamrautismcom_crm.tblsessions' doesn't exist in /home/pcsamrautismcom/public_html/system/database/drivers/mysqli/mysqli_driver.php:307
+Stack trace:
+#0 /home/pcsamrautismcom/public_html/system/database/drivers/mysqli/mysqli_driver.php(307): mysqli->query('UPDATE `tblsess...')
+#1 /home/pcsamrautismcom/public_html/system/database/DB_driver.php(792): CI_DB_mysqli_driver->_execute('UPDATE `tblsess...')
+#2 /home/pcsamrautismcom/public_html/system/database/DB_driver.php(655): CI_DB_driver->simple_query('UPDATE `tblsess...')
+#3 /home/pcsamrautismcom/public_html/system/database/DB_query_builder.php(1849): CI_DB_driver->query('UPDATE `tblsess...')
+#4 /home/pcsamrautismcom/public_html/application/libraries/Session/drivers/Session_database_driver.php(203): CI_DB_query_builder->update('sessions', Array)
+#5 [internal function]: Session_database_driver->write('f1fa710bbbd9c4e...', '__ci_last_regen...')
+#6 [internal function]: session_write_close()
+#7 {main}
+  thrown in /home/pcsamrautismcom/public_html/system/database/drivers/mysqli/mysqli_driver.php on line 307
