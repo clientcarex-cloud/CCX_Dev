@@ -1,0 +1,24 @@
+# System files
+.DS_Store
+
+# Temporary/runtime assets
+temp/
+uploads/
+application/cache/
+application/logs/
+application/sessions/
+
+# Build artifacts
+node_modules/
+vendor/
+public/storage/
+
+# Environment & local configs
+.env
+.env.*
+*.local
+
+# Backup files
+*.bak
+*.tmp
+*.swp
