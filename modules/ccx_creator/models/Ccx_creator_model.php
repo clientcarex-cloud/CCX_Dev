@@ -16,6 +16,8 @@ class Ccx_creator_model extends App_Model
     protected $dashboardsTable;
     protected $webhooksTable;
     protected $apiTokensTable;
+    protected $versionsTable;
+    protected $templatesTable;
 
     public function __construct()
     {
@@ -35,6 +37,8 @@ class Ccx_creator_model extends App_Model
         $this->dashboardsTable      = $prefix . 'ccx_creator_dashboards';
         $this->webhooksTable        = $prefix . 'ccx_creator_webhooks';
         $this->apiTokensTable       = $prefix . 'ccx_creator_api_tokens';
+        $this->versionsTable        = $prefix . 'ccx_creator_form_versions';
+        $this->templatesTable       = $prefix . 'ccx_creator_templates';
     }
 
     public function get_forms(?int $formId = null): array
@@ -116,6 +120,7 @@ class Ccx_creator_model extends App_Model
         $this->save_form_logic($formId, $logic);
         $this->save_approval_steps($formId, $approvalSteps);
         $this->save_webhooks($formId, $webhooks);
+        $this->create_form_version($formId, $this->get_form_snapshot($formId), 'Auto snapshot');
         $this->log_audit($formId, null, 'form_saved', [
             'name'          => $formData['name'],
             'fields_count'  => count($fields),
@@ -455,6 +460,125 @@ class Ccx_creator_model extends App_Model
         return $row;
     }
 
+    public function create_form_version(int $formId, array $snapshot, ?string $note = null): void
+    {
+        $this->db->insert($this->versionsTable, [
+            'form_id'    => $formId,
+            'note'       => $note,
+            'snapshot'   => json_encode($snapshot),
+            'created_by' => is_staff_logged_in() ? get_staff_user_id() : null,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function get_form_versions(int $formId): array
+    {
+        $versions = $this->db
+            ->where('form_id', $formId)
+            ->order_by('created_at', 'DESC')
+            ->get($this->versionsTable)
+            ->result_array();
+
+        foreach ($versions as &$version) {
+            $version['snapshot'] = null;
+        }
+
+        return $versions;
+    }
+
+    public function get_form_version(int $formId, int $versionId): array
+    {
+        $version = $this->db
+            ->where('form_id', $formId)
+            ->where('id', $versionId)
+            ->get($this->versionsTable)
+            ->row_array();
+
+        if (! $version) {
+            return [];
+        }
+
+        $snapshot = json_decode($version['snapshot'] ?? '[]', true);
+
+        return is_array($snapshot) ? $snapshot : [];
+    }
+
+    public function get_templates(?int $templateId = null): array
+    {
+        if ($templateId === null) {
+            return $this->db
+                ->order_by('created_at', 'DESC')
+                ->get($this->templatesTable)
+                ->result_array();
+        }
+
+        $template = $this->db
+            ->where('id', $templateId)
+            ->get($this->templatesTable)
+            ->row_array();
+
+        if (! $template) {
+            return [];
+        }
+
+        $template['payload'] = json_decode($template['payload'] ?? '[]', true) ?? [];
+
+        return $template;
+    }
+
+    public function save_template_from_form(int $formId, string $name, string $description = '', string $category = '', array $tags = [], array $snapshot = []): bool
+    {
+        if ($name === '' || empty($snapshot)) {
+            return false;
+        }
+
+        $this->db->insert($this->templatesTable, [
+            'name'        => $name,
+            'description' => $description,
+            'category'    => $category,
+            'tags'        => implode(',', $tags),
+            'payload'     => json_encode($snapshot),
+            'created_by'  => is_staff_logged_in() ? get_staff_user_id() : null,
+            'created_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+        return true;
+    }
+
+    public function apply_template(int $templateId): array
+    {
+        $template = $this->get_templates($templateId);
+
+        return $template['payload'] ?? [];
+    }
+
+    public function delete_template(int $templateId): bool
+    {
+        return $this->db->where('id', $templateId)->delete($this->templatesTable);
+    }
+
+    public function get_help_topics(): array
+    {
+        return [
+            [
+                'title' => 'Builder basics',
+                'body'  => 'Create fields, drag them to reorder, and enable submissions by toggling the Active checkbox.',
+            ],
+            [
+                'title' => 'Automation',
+                'body'  => 'Use workflows for email alerts, custom PHP snippets for validation, and webhooks/API tokens for downstream systems.',
+            ],
+            [
+                'title' => 'Approvals',
+                'body'  => 'Add multi-step approvals with staff assignments. Each step can approve or reject and leaves an audit trail.',
+            ],
+            [
+                'title' => 'Dashboards',
+                'body'  => 'Design stat or table widgets from any builder, then share or embed with a secure token.',
+            ],
+        ];
+    }
+
     public function save_dashboard(array $dashboard, array $widgets, ?int $dashboardId = null)
     {
         $name = trim($dashboard['name'] ?? '');
@@ -591,6 +715,28 @@ class Ccx_creator_model extends App_Model
         }
 
         return $records;
+    }
+
+    public function get_form_snapshot(int $formId): array
+    {
+        $form = $this->db
+            ->where('id', $formId)
+            ->get($this->formsTable)
+            ->row_array();
+
+        return [
+            'meta'      => [
+                'name'        => $form['name'] ?? '',
+                'slug'        => $form['slug'] ?? '',
+                'description' => $form['description'] ?? '',
+                'status'      => $form['status'] ?? 1,
+            ],
+            'fields'    => $this->get_form_fields($formId),
+            'workflow'  => $this->get_workflow_email_settings($formId),
+            'logic'     => $this->get_form_logic($formId),
+            'approvals' => $this->get_approval_steps($formId),
+            'webhooks'  => $this->get_webhooks($formId),
+        ];
     }
 
     private function persist_fields(int $formId, array $fields): void

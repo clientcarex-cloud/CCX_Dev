@@ -211,4 +211,31 @@ function ccx_creator_run_migrations(): void
             KEY `token_form_idx` (`form_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
+
+    if (! $CI->db->table_exists($prefix . 'ccx_creator_form_versions')) {
+        $CI->db->query("CREATE TABLE `{$prefix}ccx_creator_form_versions` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `form_id` INT(11) NOT NULL,
+            `note` VARCHAR(191) NULL,
+            `snapshot` LONGTEXT NOT NULL,
+            `created_by` INT(11) NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `form_version_form_idx` (`form_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    if (! $CI->db->table_exists($prefix . 'ccx_creator_templates')) {
+        $CI->db->query("CREATE TABLE `{$prefix}ccx_creator_templates` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(191) NOT NULL,
+            `description` VARCHAR(255) NULL,
+            `category` VARCHAR(100) NULL,
+            `tags` VARCHAR(255) NULL,
+            `payload` LONGTEXT NOT NULL,
+            `created_by` INT(11) NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
 }

@@ -61,6 +61,56 @@
                         </ul>
                     </div>
                 </div>
+
+                <?php if (! empty($form['id'])) : ?>
+                <div class="panel_s">
+                    <div class="panel-body">
+                        <h4 class="bold mbot10">Versioning</h4>
+                        <p class="text-muted">Every save creates a snapshot automatically.</p>
+                        <a href="<?php echo admin_url('ccx_creator/versions/' . $form['id']); ?>" class="btn btn-default btn-block mtop10">
+                            <i class="fa fa-history"></i> View history
+                        </a>
+                        <button type="button" class="btn btn-default btn-block mtop10" id="ccx-save-template">
+                            <i class="fa fa-star"></i> Save as template
+                        </button>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <div class="panel_s">
+                    <div class="panel-body">
+                        <h4 class="bold mbot10">Template Library</h4>
+                        <?php if (! empty($templateLibrary)) : ?>
+                            <div class="form-group">
+                                <label>Choose template</label>
+                                <select id="ccx-template-picker" class="form-control">
+                                    <option value="">-- Select template --</option>
+                                    <?php foreach ($templateLibrary as $template) : ?>
+                                        <option value="<?php echo (int) $template['id']; ?>">
+                                            <?php echo html_escape($template['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-default btn-block" id="ccx-apply-template">
+                                <i class="fa fa-layer-group"></i> Apply template
+                            </button>
+                        <?php else : ?>
+                            <p class="text-muted">No templates yet. Save one from any builder to reuse it.</p>
+                        <?php endif; ?>
+                        <a href="<?php echo admin_url('ccx_creator/templates'); ?>" class="btn btn-link btn-block">Browse library</a>
+                    </div>
+                </div>
+
+                <div class="panel_s">
+                    <div class="panel-body">
+                        <h4 class="bold mbot10">Documentation</h4>
+                        <p class="text-muted">Need a refresher? Read playbooks covering automation, approvals, and embeds.</p>
+                        <a href="<?php echo admin_url('ccx_creator/docs'); ?>" class="btn btn-default btn-block" target="_blank">
+                            <i class="fa fa-book"></i> Open docs
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="col-md-8">
@@ -238,7 +288,9 @@
     const staffOptions = <?php echo json_encode($staffOptions ?? []); ?>;
     const initialWebhooks = <?php echo json_encode($webhooks ?? []); ?>;
     const apiTokens = <?php echo json_encode($apiTokens ?? []); ?>;
+    const templateLibrary = <?php echo json_encode($templateLibrary ?? []); ?>;
     const formId = <?php echo isset($form['id']) ? (int) $form['id'] : 'null'; ?>;
+    const builderFormBaseUrl = '<?php echo admin_url('ccx_creator/form' . (! empty($form['id']) ? '/' . (int) $form['id'] : '')); ?>';
     const emptyState = document.createElement('div');
     let draggedCard = null;
 
@@ -821,6 +873,55 @@
                 apiTokens.unshift(response.token);
                 tokensTable.insertAdjacentHTML('afterbegin', formatTokenRow(response.token));
             }, 'json');
+        });
+    }
+
+    const templatePicker = document.getElementById('ccx-template-picker');
+    const applyTemplateBtn = document.getElementById('ccx-apply-template');
+    const saveTemplateBtn = document.getElementById('ccx-save-template');
+
+    if (saveTemplateBtn && formId) {
+        saveTemplateBtn.addEventListener('click', () => {
+            const name = prompt('Template name');
+            if (!name) {
+                return;
+            }
+            const description = prompt('Description (optional)', '') || '';
+            const category = prompt('Category (optional)', '') || '';
+            const tags = prompt('Tags (comma separated)', '') || '';
+
+            const payload = Object.assign({
+                name: name,
+                description: description,
+                category: category,
+                tags: tags,
+            }, getCsrf());
+
+            $.post(adminUrl + 'ccx_creator/template_save/' + formId, payload, function (response) {
+                if (response && response.success) {
+                    alert('Template saved.');
+                } else {
+                    alert('Unable to save template.');
+                }
+            }, 'json');
+        });
+    }
+
+    if (applyTemplateBtn && templatePicker) {
+        applyTemplateBtn.addEventListener('click', () => {
+            if (!templatePicker.value) {
+                alert('Select a template first.');
+                return;
+            }
+            if (formId && !confirm('Apply template and overwrite the current builder? Unsaved changes will be lost.')) {
+                return;
+            }
+
+            const target = formId
+                ? builderFormBaseUrl + '?template=' + templatePicker.value
+                : adminUrl + 'ccx_creator/form?template=' + templatePicker.value;
+
+            window.location = target;
         });
     }
 

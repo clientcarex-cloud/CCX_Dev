@@ -148,6 +148,22 @@ class Ccx_creator extends AdminController
             show_404();
         }
 
+        $templateRequest = (int) $this->input->get('template');
+        if (! $formId && $templateRequest > 0) {
+            $templatePayload = $this->ccx_creator_model->apply_template($templateRequest);
+            if (! empty($templatePayload)) {
+                if (! empty($templatePayload['meta'])) {
+                    $form['name']        = $templatePayload['meta']['name'] ?? ($form['name'] ?? '');
+                    $form['description'] = $templatePayload['meta']['description'] ?? ($form['description'] ?? '');
+                }
+                $form['fields']    = $templatePayload['fields'] ?? [];
+                $form['workflow']  = $templatePayload['workflow'] ?? [];
+                $form['logic']     = $templatePayload['logic'] ?? [];
+                $form['approvals'] = $templatePayload['approvals'] ?? [];
+                $form['webhooks']  = $templatePayload['webhooks'] ?? [];
+            }
+        }
+
         if (! empty($form['fields'])) {
             $form['fields'] = $this->with_field_configuration($form['fields']);
         }
@@ -156,17 +172,18 @@ class Ccx_creator extends AdminController
 
         $staffMembers = $this->staff_model->get('', ['active' => 1]);
 
-        $data['title']        = $formId ? 'Edit Builder' : 'Create Builder';
-        $data['form']         = $form;
-        $data['fields']       = $form['fields'] ?? [];
-        $data['workflow']     = $this->prepare_workflow_defaults($form['workflow'] ?? []);
-        $data['logic']        = $this->prepare_logic_defaults($form['logic'] ?? []);
-        $data['approvals']    = $form['approvals'] ?? [];
-        $data['blocks']       = $this->ccx_creator_model->get_blocks();
-        $data['staff']        = $staffMembers;
-        $data['staffOptions'] = $this->prepare_staff_options($staffMembers);
-        $data['webhooks']     = $form['webhooks'] ?? [];
-        $data['apiTokens']    = $form['api_tokens'] ?? [];
+        $data['title']            = $formId ? 'Edit Builder' : 'Create Builder';
+        $data['form']             = $form;
+        $data['fields']           = $form['fields'] ?? [];
+        $data['workflow']         = $this->prepare_workflow_defaults($form['workflow'] ?? []);
+        $data['logic']            = $this->prepare_logic_defaults($form['logic'] ?? []);
+        $data['approvals']        = $form['approvals'] ?? [];
+        $data['blocks']           = $this->ccx_creator_model->get_blocks();
+        $data['staff']            = $staffMembers;
+        $data['staffOptions']     = $this->prepare_staff_options($staffMembers);
+        $data['webhooks']         = $form['webhooks'] ?? [];
+        $data['apiTokens']        = $form['api_tokens'] ?? [];
+        $data['templateLibrary']  = $this->ccx_creator_model->get_templates();
 
         $this->load->view('ccx_creator/forms/editor', $data);
     }
@@ -249,6 +266,153 @@ class Ccx_creator extends AdminController
         }
 
         redirect(admin_url('ccx_creator'));
+    }
+
+    public function versions($formId): void
+    {
+        if (! (is_admin() || staff_can('view', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $form = $this->ccx_creator_model->get_forms((int) $formId);
+        if (empty($form)) {
+            show_404();
+        }
+
+        $data['title']    = 'Versions · ' . $form['name'];
+        $data['form']     = $form;
+        $data['versions'] = $this->ccx_creator_model->get_form_versions((int) $formId);
+
+        $this->load->view('ccx_creator/forms/versions', $data);
+    }
+
+    public function restore_version($formId, $versionId): void
+    {
+        if (! (is_admin() || staff_can('edit', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $form = $this->ccx_creator_model->get_forms((int) $formId);
+        if (empty($form)) {
+            show_404();
+        }
+
+        $snapshot = $this->ccx_creator_model->get_form_version((int) $formId, (int) $versionId);
+        if (empty($snapshot)) {
+            set_alert('danger', 'Version not found.');
+            redirect(admin_url('ccx_creator/versions/' . $formId));
+
+            return;
+        }
+
+        $meta = $snapshot['meta'] ?? [
+            'name'        => $form['name'],
+            'slug'        => $form['slug'],
+            'description' => $form['description'],
+            'status'      => $form['status'],
+        ];
+
+        $result = $this->ccx_creator_model->save_form(
+            [
+                'name'        => $meta['name'] ?? $form['name'],
+                'slug'        => $meta['slug'] ?? $form['slug'],
+                'description' => $meta['description'] ?? $form['description'],
+                'status'      => $meta['status'] ?? $form['status'],
+            ],
+            $snapshot['fields'] ?? [],
+            $snapshot['workflow'] ?? [],
+            $snapshot['logic'] ?? [],
+            $snapshot['approvals'] ?? [],
+            $snapshot['webhooks'] ?? [],
+            (int) $formId
+        );
+
+        if ($result) {
+            set_alert('success', 'Version restored.');
+        } else {
+            set_alert('danger', 'Unable to restore version.');
+        }
+
+        redirect(admin_url('ccx_creator/form/' . $formId));
+    }
+
+    public function templates(): void
+    {
+        if (! (is_admin() || staff_can('view', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $data['title']     = 'Template Library';
+        $data['templates'] = $this->ccx_creator_model->get_templates();
+
+        $this->load->view('ccx_creator/templates/index', $data);
+    }
+
+    public function template_save($formId): void
+    {
+        if (! (is_admin() || staff_can('create', 'ccx_creator') || staff_can('edit', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        if (! (int) $formId) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false]));
+
+            return;
+        }
+
+        $name        = $this->input->post('name', true);
+        $description = $this->input->post('description', true);
+        $category    = $this->input->post('category', true);
+        $tags        = array_filter(array_map('trim', explode(',', (string) $this->input->post('tags', true))));
+
+        $snapshot = $this->ccx_creator_model->get_form_snapshot((int) $formId);
+        $success  = $this->ccx_creator_model->save_template_from_form((int) $formId, $name, $description, $category, $tags, $snapshot);
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['success' => $success]));
+    }
+
+    public function template_delete($id): void
+    {
+        if (! (is_admin() || staff_can('delete', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $success = $this->ccx_creator_model->delete_template((int) $id);
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['success' => $success]));
+    }
+
+    public function template_payload($id): void
+    {
+        if (! (is_admin() || staff_can('view', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $template = $this->ccx_creator_model->apply_template((int) $id);
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => ! empty($template),
+                'payload' => $template,
+            ]));
+    }
+
+    public function docs(): void
+    {
+        if (! (is_admin() || staff_can('view', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $data['title']  = 'CCX Creator Docs';
+        $data['topics'] = $this->ccx_creator_model->get_help_topics();
+
+        $this->load->view('ccx_creator/docs/index', $data);
     }
 
     private function handle_form_save(?int $formId): void

@@ -9,6 +9,9 @@
                         <div class="clearfix mtop10 mbot20">
                             <h4 class="pull-left bold">CCX Creator</h4>
                             <div class="pull-right btn-group">
+                                <a href="<?php echo admin_url('ccx_creator/docs'); ?>" class="btn btn-default">
+                                    <i class="fa fa-book"></i> Docs
+                                </a>
                                 <a href="<?php echo admin_url('ccx_creator/dashboards'); ?>" class="btn btn-default">
                                     <i class="fa fa-chart-line"></i> Dashboards
                                 </a>
@@ -51,6 +54,9 @@
                                             <td class="text-right">
                                                 <a href="<?php echo admin_url('ccx_creator/form/' . $form['id']); ?>" class="btn btn-default btn-icon">
                                                     <i class="fa fa-edit"></i>
+                                                </a>
+                                                <a href="<?php echo admin_url('ccx_creator/versions/' . $form['id']); ?>" class="btn btn-default btn-icon">
+                                                    <i class="fa fa-history"></i>
                                                 </a>
                                                 <a href="<?php echo admin_url('ccx_creator/records/' . $form['id']); ?>" class="btn btn-default btn-icon">
                                                     <i class="fa fa-database"></i>
