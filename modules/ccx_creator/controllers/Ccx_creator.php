@@ -8,10 +8,6 @@ class Ccx_creator extends AdminController
      */
     protected $sections = [];
 
-    /**
-     * @var Ccx_creator_model
-     */
-    protected $creatorModel;
 
     public function __construct()
     {
@@ -39,7 +35,7 @@ class Ccx_creator extends AdminController
 
     public function menus(): void
     {
-        $menus = $this->creatorModel->get_menus();
+        $menus = $this->creatormodel->get_menus();
         $roles = $this->roles_model->get();
 
         $roleMap = [];
@@ -49,7 +45,7 @@ class Ccx_creator extends AdminController
 
         foreach ($menus as &$menu) {
             $menu['role_labels'] = $this->format_role_labels($menu['role_access'], $roleMap);
-            $menu['can_delete']  = $this->creatorModel->can_delete_menu($menu);
+            $menu['can_delete']  = $this->creatormodel->can_delete_menu($menu);
 
             foreach ($menu['submenus'] as &$submenu) {
                 $submenu['role_labels'] = $this->format_role_labels($submenu['role_access'], $roleMap);
@@ -70,7 +66,7 @@ class Ccx_creator extends AdminController
         $menuId = $id ? (int) $id : null;
 
         if ($this->input->post()) {
-            $response = $this->creatorModel->save_menu($this->input->post(), $menuId);
+            $response = $this->creatormodel->save_menu($this->input->post(), $menuId);
 
             if ($response['success']) {
                 $message = $menuId ? 'Menu updated successfully.' : 'Menu created successfully.';
@@ -83,7 +79,7 @@ class Ccx_creator extends AdminController
         }
 
         $data['title']    = $menuId ? 'Edit Menu' : 'Add Menu';
-        $data['menu']     = $menuId ? $this->creatorModel->get_menus($menuId) : null;
+        $data['menu']     = $menuId ? $this->creatormodel->get_menus($menuId) : null;
 
         if ($menuId && empty($data['menu'])) {
             show_404();
@@ -98,7 +94,7 @@ class Ccx_creator extends AdminController
     public function toggle_menu_status($id): void
     {
         $status  = (int) $this->input->post('status');
-        $success = $this->creatorModel->update_menu_status((int) $id, $status);
+        $success = $this->creatormodel->update_menu_status((int) $id, $status);
 
         if ($this->input->is_ajax_request()) {
             $this->output
@@ -119,7 +115,7 @@ class Ccx_creator extends AdminController
 
     public function delete_menu($id): void
     {
-        $response = $this->creatorModel->delete_menu((int) $id);
+        $response = $this->creatormodel->delete_menu((int) $id);
 
         if ($response['success']) {
             set_alert('success', 'Menu deleted.');
@@ -132,7 +128,7 @@ class Ccx_creator extends AdminController
 
     public function menu(string $slug, ?string $submenuSlug = null): void
     {
-        $menu = $this->creatorModel->get_menu_by_slug($slug);
+        $menu = $this->creatormodel->get_menu_by_slug($slug);
 
         if (! $menu) {
             show_404();
