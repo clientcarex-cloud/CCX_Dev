@@ -123,6 +123,39 @@
                                     <label>After Submit Script</label>
                                     <textarea id="logic-after" rows="6" class="form-control" placeholder="// Runs after record is stored."><?php echo html_escape($logic['after_submit'] ?? ''); ?></textarea>
                                 </div>
+                                <hr>
+                                <h4 class="bold">Webhooks</h4>
+                                <p class="text-muted">Notify external services when submissions happen. Include optional headers for authentication.</p>
+                                <div id="ccx-webhooks-list"></div>
+                                <button type="button" class="btn btn-default mtop10" id="ccx-add-webhook">
+                                    <i class="fa fa-plus"></i> Add webhook
+                                </button>
+                                <hr>
+                                <h4 class="bold">API Tokens</h4>
+                                <?php if (! empty($form['id'])) : ?>
+                                    <p class="text-muted">Use tokens to pull submissions into other systems (GET <?php echo site_url('ccx_creator/api/{token}'); ?>).</p>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="ccx-api-tokens-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Label</th>
+                                                    <th>Token</th>
+                                                    <th>Scopes</th>
+                                                    <th>Created</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn btn-default" id="ccx-generate-token">
+                                        <i class="fa fa-key"></i> Generate API Token
+                                    </button>
+                                <?php else : ?>
+                                    <div class="alert alert-info">
+                                        Save the form first to generate API tokens.
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <div role="tabpanel" class="tab-pane" id="ccx-tab-approvals">
@@ -143,6 +176,7 @@
         <input type="hidden" name="workflow_payload" id="workflow_payload">
         <input type="hidden" name="logic_payload" id="logic_payload">
         <input type="hidden" name="approvals_payload" id="approvals_payload">
+        <input type="hidden" name="webhooks_payload" id="webhooks_payload">
         <?php echo form_close(); ?>
     </div>
 </div>
@@ -193,6 +227,7 @@
     const hiddenWorkflow = document.getElementById('workflow_payload');
     const hiddenLogic = document.getElementById('logic_payload');
     const hiddenApprovals = document.getElementById('approvals_payload');
+    const hiddenWebhooks = document.getElementById('webhooks_payload');
     const saveBlockBtn = document.getElementById('ccx-save-block');
     const blocksList = document.getElementById('ccx-blocks-list');
     const addApprovalBtn = document.getElementById('ccx-add-approval');
@@ -201,6 +236,9 @@
     const workflowDefaults = <?php echo json_encode($workflow ?? []); ?>;
     const logicDefaults = <?php echo json_encode($logic ?? []); ?>;
     const staffOptions = <?php echo json_encode($staffOptions ?? []); ?>;
+    const initialWebhooks = <?php echo json_encode($webhooks ?? []); ?>;
+    const apiTokens = <?php echo json_encode($apiTokens ?? []); ?>;
+    const formId = <?php echo isset($form['id']) ? (int) $form['id'] : 'null'; ?>;
     const emptyState = document.createElement('div');
     let draggedCard = null;
 
@@ -584,9 +622,207 @@
         return payload;
     };
 
+    const webhooksContainer = document.getElementById('ccx-webhooks-list');
+    const addWebhookBtn = document.getElementById('ccx-add-webhook');
+
+    const createWebhookRow = (hook = {}) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'panel panel-default';
+        wrapper.innerHTML = `
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label>URL</label>
+                            <input type="text" class="form-control webhook-url" value="${hook.url || ''}" placeholder="https://example.com/webhooks">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Event</label>
+                            <select class="form-control webhook-event">
+                                <option value="on_submit" ${hook.event === 'on_submit' ? 'selected' : ''}>On submit</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-right">
+                        <button type="button" class="btn btn-danger btn-sm ccx-webhook-remove" style="margin-top:25px;"><i class="fa fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label>Headers (JSON or key:value per line)</label>
+                            <textarea rows="2" class="form-control webhook-headers">${formatHeadersField(hook.headers)}</textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox checkbox-primary" style="margin-top:25px;">
+                            <input type="checkbox" class="webhook-active" ${hook.is_active === 0 ? '' : 'checked'} id="webhook-active-${Math.random().toString(36).substring(2)}">
+                            <label>Active</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        wrapper.querySelector('.ccx-webhook-remove').addEventListener('click', () => wrapper.remove());
+
+        wrapper._refs = {
+            url: wrapper.querySelector('.webhook-url'),
+            event: wrapper.querySelector('.webhook-event'),
+            headers: wrapper.querySelector('.webhook-headers'),
+            active: wrapper.querySelector('.webhook-active'),
+        };
+
+        return wrapper;
+    };
+
+    const formatHeadersField = (headers) => {
+        if (!headers) {
+            return '';
+        }
+        if (Array.isArray(headers)) {
+            return headers.join('\n');
+        }
+        if (typeof headers === 'object') {
+            return Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\n');
+        }
+        return headers;
+    };
+
+    const parseHeadersField = (value) => {
+        if (!value) {
+            return [];
+        }
+        const lines = value.split('\n');
+        const map = {};
+        lines.forEach((line) => {
+            const parts = line.split(':');
+            if (parts.length >= 2) {
+                const key = parts.shift().trim();
+                map[key] = parts.join(':').trim();
+            }
+        });
+        return map;
+    };
+
+    const collectWebhooks = () => {
+        const payload = [];
+        webhooksContainer.querySelectorAll('.panel').forEach((row) => {
+            const refs = row._refs;
+            payload.push({
+                url: refs.url.value,
+                event: refs.event.value,
+                headers: parseHeadersField(refs.headers.value),
+                is_active: refs.active.checked ? 1 : 0,
+            });
+        });
+        return payload;
+    };
+
+    const renderWebhooks = () => {
+        if (!initialWebhooks.length) {
+            webhooksContainer.innerHTML = '<p class="text-muted">No webhooks yet.</p>';
+            return;
+        }
+        webhooksContainer.innerHTML = '';
+        initialWebhooks.forEach((hook) => {
+            const row = createWebhookRow(hook);
+            webhooksContainer.appendChild(row);
+        });
+    };
+
+    addWebhookBtn.addEventListener('click', () => {
+        if (webhooksContainer.querySelector('p')) {
+            webhooksContainer.innerHTML = '';
+        }
+        webhooksContainer.appendChild(createWebhookRow({ event: 'on_submit', is_active: 1 }));
+    });
+
     addApprovalBtn.addEventListener('click', () => addApprovalRow({ assignee_type: 'any' }));
 
     initialApprovals.forEach((step) => addApprovalRow(step));
+
+    renderWebhooks();
+
+    const tokensTable = document.querySelector('#ccx-api-tokens-table tbody');
+    const formatTokenRow = (token) => `
+        <tr data-token-id="${token.id}">
+            <td>${token.label}</td>
+            <td><code>${token.token}</code></td>
+            <td>${Array.isArray(token.scopes) ? token.scopes.join(', ') : (token.scopes || 'read')}</td>
+            <td>${token.created_at || ''}</td>
+            <td class="text-right">
+                <button type="button" class="btn btn-xs btn-danger ccx-token-revoke">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+
+    const hydrateTokenTable = () => {
+        if (!tokensTable) {
+            return;
+        }
+        tokensTable.innerHTML = '';
+        apiTokens.forEach((token) => {
+            if (typeof token.scopes === 'string') {
+                try {
+                    token.scopes = JSON.parse(token.scopes);
+                } catch (e) {
+                    token.scopes = ['read'];
+                }
+            }
+            tokensTable.insertAdjacentHTML('beforeend', formatTokenRow(token));
+        });
+    };
+
+    hydrateTokenTable();
+
+    const bindTokenActions = () => {
+        if (!tokensTable) {
+            return;
+        }
+        tokensTable.addEventListener('click', function (event) {
+            const btn = event.target.closest('.ccx-token-revoke');
+            if (!btn) {
+                return;
+            }
+            const row = btn.closest('tr');
+            const tokenId = row.dataset.tokenId;
+            if (!confirm('Revoke this API token?')) {
+                return;
+            }
+            $.post(adminUrl + 'ccx_creator/revoke_token/' + tokenId, getCsrf(), function (response) {
+                if (response && response.success) {
+                    row.remove();
+                } else {
+                    alert('Unable to revoke token.');
+                }
+            }, 'json');
+        });
+    };
+
+    bindTokenActions();
+
+    const generateTokenBtn = document.getElementById('ccx-generate-token');
+    if (generateTokenBtn && formId) {
+        generateTokenBtn.addEventListener('click', () => {
+            const label = prompt('Token label', 'Integration #' + Math.floor(Math.random() * 1000));
+            if (!label) {
+                return;
+            }
+            const payload = Object.assign({ label: label }, getCsrf());
+            $.post(adminUrl + 'ccx_creator/create_token/' + formId, payload, function (response) {
+                if (!response || !response.success) {
+                    alert('Unable to create token.');
+                    return;
+                }
+                apiTokens.unshift(response.token);
+                tokensTable.insertAdjacentHTML('afterbegin', formatTokenRow(response.token));
+            }, 'json');
+        });
+    }
 
     initializeFields();
     toggleEmptyState();
@@ -599,6 +835,7 @@
             after_submit: document.getElementById('logic-after').value,
         });
         hiddenApprovals.value = JSON.stringify(collectApprovals());
+        hiddenWebhooks.value = JSON.stringify(collectWebhooks());
     });
 })();
 </script>

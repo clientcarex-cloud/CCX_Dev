@@ -13,6 +13,9 @@ class Ccx_creator_model extends App_Model
     protected $recordStepsTable;
     protected $auditTable;
     protected $blocksTable;
+    protected $dashboardsTable;
+    protected $webhooksTable;
+    protected $apiTokensTable;
 
     public function __construct()
     {
@@ -29,6 +32,9 @@ class Ccx_creator_model extends App_Model
         $this->recordStepsTable     = $prefix . 'ccx_creator_record_steps';
         $this->auditTable           = $prefix . 'ccx_creator_audit_logs';
         $this->blocksTable          = $prefix . 'ccx_creator_blocks';
+        $this->dashboardsTable      = $prefix . 'ccx_creator_dashboards';
+        $this->webhooksTable        = $prefix . 'ccx_creator_webhooks';
+        $this->apiTokensTable       = $prefix . 'ccx_creator_api_tokens';
     }
 
     public function get_forms(?int $formId = null): array
@@ -50,6 +56,8 @@ class Ccx_creator_model extends App_Model
             $form['workflow']   = $this->get_workflow_email_settings($formId);
             $form['logic']      = $this->get_form_logic($formId);
             $form['approvals']  = $this->get_approval_steps($formId);
+            $form['webhooks']   = $this->get_webhooks($formId);
+            $form['api_tokens'] = $this->get_api_tokens($formId);
         }
 
         return $form ?? [];
@@ -67,6 +75,7 @@ class Ccx_creator_model extends App_Model
             $form['workflow']  = $this->get_workflow_email_settings((int) $form['id']);
             $form['logic']     = $this->get_form_logic((int) $form['id']);
             $form['approvals'] = $this->get_approval_steps((int) $form['id']);
+            $form['webhooks']  = $this->get_webhooks((int) $form['id']);
         }
 
         return $form ?? [];
@@ -78,6 +87,7 @@ class Ccx_creator_model extends App_Model
         array $workflow,
         array $logic,
         array $approvalSteps,
+        array $webhooks,
         ?int $formId = null
     ) {
         $name = trim($formData['name'] ?? '');
@@ -105,9 +115,11 @@ class Ccx_creator_model extends App_Model
         $this->save_submit_workflow($formId, $workflow);
         $this->save_form_logic($formId, $logic);
         $this->save_approval_steps($formId, $approvalSteps);
+        $this->save_webhooks($formId, $webhooks);
         $this->log_audit($formId, null, 'form_saved', [
-            'name'  => $formData['name'],
-            'fields_count' => count($fields),
+            'name'          => $formData['name'],
+            'fields_count'  => count($fields),
+            'webhooks'      => count($webhooks),
         ]);
 
         $this->db->trans_complete();
@@ -125,30 +137,22 @@ class Ccx_creator_model extends App_Model
     {
         $this->db->trans_start();
 
-        $workflowIds = $this->db
-            ->select('id')
-            ->where('form_id', $formId)
-            ->get($this->workflowsTable)
-            ->result_array();
-
-        if (! empty($workflowIds)) {
-            $ids = array_column($workflowIds, 'id');
-            $this->db->where_in('workflow_id', $ids)->delete($this->workflowActionsTable);
-        }
-
-        $recordIds = $this->db->select('id')->where('form_id', $formId)->get($this->recordsTable)->result_array();
-        if (! empty($recordIds)) {
-            $ids = array_column($recordIds, 'id');
+        $records = $this->db->select('id')->where('form_id', $formId)->get($this->recordsTable)->result_array();
+        if (! empty($records)) {
+            $ids = array_column($records, 'id');
             $this->db->where_in('record_id', $ids)->delete($this->recordStepsTable);
             $this->db->where_in('record_id', $ids)->delete($this->auditTable);
         }
 
         $this->db->where('form_id', $formId)->delete($this->workflowsTable);
+        $this->db->where('form_id', $formId)->delete($this->workflowActionsTable);
         $this->db->where('form_id', $formId)->delete($this->fieldsTable);
         $this->db->where('form_id', $formId)->delete($this->recordsTable);
         $this->db->where('form_id', $formId)->delete($this->logicTable);
         $this->db->where('form_id', $formId)->delete($this->approvalStepsTable);
-
+        $this->db->where('form_id', $formId)->delete($this->recordStepsTable);
+        $this->db->where('form_id', $formId)->delete($this->webhooksTable);
+        $this->db->where('form_id', $formId)->delete($this->apiTokensTable);
         $this->db->where('id', $formId)->delete($this->formsTable);
 
         $this->db->trans_complete();
@@ -183,19 +187,18 @@ class Ccx_creator_model extends App_Model
             return [];
         }
 
-        $recordIds = array_column($records, 'id');
-        $steps     = $this->get_record_steps($recordIds);
+        $steps = $this->get_record_steps(array_column($records, 'id'));
 
         foreach ($records as &$record) {
-            $record['data']   = json_decode($record['data'] ?? '[]', true) ?? [];
-            $record['steps']  = $steps[$record['id']] ?? [];
+            $record['data']  = json_decode($record['data'] ?? '[]', true) ?? [];
+            $record['steps'] = $steps[$record['id']] ?? [];
         }
 
         return $records;
     }
 
     /**
-     * Save a record and trigger workflows + approvals.
+     * Save a record and trigger workflows, logic, approvals, and integrations.
      *
      * @return array [int|false $recordId, null|string $error]
      */
@@ -230,7 +233,7 @@ class Ccx_creator_model extends App_Model
                 return [false, $field['label'] . ' is required.'];
             }
 
-            $payload[$key]          = $this->sanitize_field_value($field['type'], $value);
+            $payload[$key]           = $this->sanitize_field_value($field['type'], $value);
             $pretty[$field['label']] = $payload[$key];
         }
 
@@ -259,9 +262,11 @@ class Ccx_creator_model extends App_Model
             'form'   => $form,
             'record' => ['id' => $recordId],
         ];
+
         $afterResult = $this->execute_logic('after_submit', $formId, $payload, $afterContext);
         if ($afterResult !== true) {
             $this->db->where('id', $recordId)->delete($this->recordsTable);
+
             return [false, $afterResult];
         }
 
@@ -274,6 +279,7 @@ class Ccx_creator_model extends App_Model
         }
 
         $this->trigger_event('on_submit', $form, $recordId, $payload, $pretty);
+        $this->dispatch_webhooks('on_submit', $form, $recordId, $payload);
 
         return [$recordId, null];
     }
@@ -336,16 +342,6 @@ class Ccx_creator_model extends App_Model
             ->result_array();
     }
 
-    public function get_audit_logs(int $formId, int $limit = 50): array
-    {
-        return $this->db
-            ->where('form_id', $formId)
-            ->order_by('created_at', 'DESC')
-            ->limit($limit)
-            ->get($this->auditTable)
-            ->result_array();
-    }
-
     public function save_block(string $name, string $description, array $definition)
     {
         if ($name === '' || empty($definition)) {
@@ -355,8 +351,7 @@ class Ccx_creator_model extends App_Model
         $payload = [
             'name'        => $name,
             'description' => $description,
-            'definition'  =>
-                json_encode(array_values($definition)),
+            'definition'  => json_encode(array_values($definition)),
             'created_by'  => get_staff_user_id(),
             'created_at'  => date('Y-m-d H:i:s'),
         ];
@@ -387,118 +382,215 @@ class Ccx_creator_model extends App_Model
         return is_array($definition) ? $definition : [];
     }
 
-    public function get_record_steps(array $recordIds): array
+    public function get_audit_logs(int $formId, int $limit = 50): array
     {
-        if (empty($recordIds)) {
-            return [];
-        }
+        return $this->db
+            ->where('form_id', $formId)
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get($this->auditTable)
+            ->result_array();
+    }
 
-        $rows = $this->db
-            ->where_in('record_id', $recordIds)
+    public function get_webhooks(int $formId): array
+    {
+        return $this->db
+            ->where('form_id', $formId)
             ->order_by('id', 'ASC')
-            ->get($this->recordStepsTable)
+            ->get($this->webhooksTable)
             ->result_array();
+    }
 
-        if (empty($rows)) {
+    public function get_api_tokens(int $formId): array
+    {
+        return $this->db
+            ->where('form_id', $formId)
+            ->order_by('created_at', 'DESC')
+            ->get($this->apiTokensTable)
+            ->result_array();
+    }
+
+    public function create_api_token(int $formId, string $label, array $scopes = ['read'])
+    {
+        $token = bin2hex(random_bytes(20));
+        $payload = [
+            'form_id'    => $formId,
+            'label'      => $label !== '' ? $label : 'API token',
+            'token'      => $token,
+            'scopes'     => json_encode($scopes),
+            'created_by' => get_staff_user_id(),
+            'created_at' => date('Y-m-d H:i:s'),
+        ];
+
+        $this->db->insert($this->apiTokensTable, $payload);
+        $id = (int) $this->db->insert_id();
+
+        return $this->db
+            ->where('id', $id)
+            ->get($this->apiTokensTable)
+            ->row_array();
+    }
+
+    public function revoke_api_token(int $tokenId): bool
+    {
+        return $this->db->where('id', $tokenId)->delete($this->apiTokensTable);
+    }
+
+    public function validate_api_token(string $token, string $scope = 'read')
+    {
+        $row = $this->db
+            ->where('token', $token)
+            ->get($this->apiTokensTable)
+            ->row_array();
+
+        if (! $row) {
+            return false;
+        }
+
+        $scopes = json_decode($row['scopes'] ?? '[]', true);
+        if (! in_array($scope, (array) $scopes, true)) {
+            return false;
+        }
+
+        return $row;
+    }
+
+    public function save_dashboard(array $dashboard, array $widgets, ?int $dashboardId = null)
+    {
+        $name = trim($dashboard['name'] ?? '');
+        if ($name === '' || empty($widgets)) {
+            return false;
+        }
+
+        $dashboard['slug']        = $this->generate_unique_slug($dashboard['slug'] ?? $name, $dashboardId, $this->dashboardsTable);
+        $dashboard['visibility']  = $dashboard['visibility'] ?? 'private';
+        $dashboard['layout']      = json_encode(array_values($widgets));
+
+        $this->db->trans_start();
+
+        if ($dashboardId) {
+            $dashboard['updated_at'] = date('Y-m-d H:i:s');
+            $this->db->where('id', $dashboardId)->update($this->dashboardsTable, $dashboard);
+        } else {
+            $dashboard['created_by'] = get_staff_user_id();
+            $dashboard['created_at'] = date('Y-m-d H:i:s');
+            $this->db->insert($this->dashboardsTable, $dashboard);
+            $dashboardId = (int) $this->db->insert_id();
+        }
+
+        if ($dashboard['visibility'] !== 'private') {
+            $this->ensure_dashboard_share_token($dashboardId);
+        } else {
+            $this->db->where('id', $dashboardId)->update($this->dashboardsTable, ['share_token' => null]);
+        }
+
+        $this->db->trans_complete();
+
+        return $this->db->trans_status() ? $dashboardId : false;
+    }
+
+    public function get_dashboards(?int $dashboardId = null): array
+    {
+        if ($dashboardId === null) {
+            return $this->db
+                ->order_by('created_at', 'DESC')
+                ->get($this->dashboardsTable)
+                ->result_array();
+        }
+
+        $dashboard = $this->db
+            ->where('id', $dashboardId)
+            ->get($this->dashboardsTable)
+            ->row_array();
+
+        if ($dashboard) {
+            $dashboard['widgets'] = json_decode($dashboard['layout'] ?? '[]', true) ?? [];
+        }
+
+        return $dashboard ?? [];
+    }
+
+    public function delete_dashboard(int $dashboardId): bool
+    {
+        return $this->db->where('id', $dashboardId)->delete($this->dashboardsTable);
+    }
+
+    public function get_dashboard_data(int $dashboardId): array
+    {
+        $dashboard = $this->get_dashboards($dashboardId);
+        if (empty($dashboard)) {
             return [];
         }
 
-        $stepDefinitions = $this->db
-            ->where_in('id', array_column($rows, 'step_id'))
-            ->get($this->approvalStepsTable)
+        return [
+            'dashboard' => $dashboard,
+            'widgets'   => $this->evaluate_dashboard_widgets($dashboard['widgets'] ?? []),
+        ];
+    }
+
+    public function get_dashboard_by_token(string $token): array
+    {
+        $dashboard = $this->db
+            ->where('share_token', $token)
+            ->get($this->dashboardsTable)
+            ->row_array();
+
+        if ($dashboard) {
+            $dashboard['widgets'] = json_decode($dashboard['layout'] ?? '[]', true) ?? [];
+        }
+
+        return $dashboard ?? [];
+    }
+
+    public function get_dashboard_data_by_token(string $token): array
+    {
+        $dashboard = $this->get_dashboard_by_token($token);
+        if (empty($dashboard) || $dashboard['visibility'] === 'private') {
+            return [];
+        }
+
+        return [
+            'dashboard' => $dashboard,
+            'widgets'   => $this->evaluate_dashboard_widgets($dashboard['widgets'] ?? []),
+        ];
+    }
+
+    public function ensure_dashboard_share_token(int $dashboardId): string
+    {
+        $dashboard = $this->db
+            ->select('share_token')
+            ->where('id', $dashboardId)
+            ->get($this->dashboardsTable)
+            ->row_array();
+
+        if (! $dashboard) {
+            return '';
+        }
+
+        if (empty($dashboard['share_token'])) {
+            $token = bin2hex(random_bytes(16));
+            $this->db->where('id', $dashboardId)->update($this->dashboardsTable, ['share_token' => $token]);
+
+            return $token;
+        }
+
+        return $dashboard['share_token'];
+    }
+
+    public function get_form_records_for_api(int $formId, int $limit = 50): array
+    {
+        $records = $this->db
+            ->where('form_id', $formId)
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get($this->recordsTable)
             ->result_array();
 
-        $definitions = [];
-        foreach ($stepDefinitions as $definition) {
-            $definitions[$definition['id']] = $definition;
+        foreach ($records as &$record) {
+            $record['data'] = json_decode($record['data'] ?? '[]', true) ?? [];
         }
 
-        $grouped = [];
-        foreach ($rows as $row) {
-            $row['definition'] = $definitions[$row['step_id']] ?? null;
-            $grouped[$row['record_id']][] = $row;
-        }
-
-        return $grouped;
-    }
-
-    public function can_staff_act_on_step(array $step): bool
-    {
-        $definition = $step['definition'] ?? [];
-
-        if (empty($definition)) {
-            return is_admin();
-        }
-
-        if (is_admin()) {
-            return true;
-        }
-
-        $type  = $definition['assignee_type'] ?? 'any';
-        $value = $definition['assignee_value'] ?? null;
-
-        switch ($type) {
-            case 'staff':
-                return (int) $value === get_staff_user_id();
-            case 'role':
-                return $value === 'staff';
-            default:
-                return true;
-        }
-    }
-
-    public function complete_step(int $stepEntryId, string $action, ?string $comment = null): array
-    {
-        $stepEntry = $this->db
-            ->where('id', $stepEntryId)
-            ->get($this->recordStepsTable)
-            ->row_array();
-
-        if (! $stepEntry) {
-            return [false, 'Approval step not found.'];
-        }
-
-        if (in_array($stepEntry['status'], ['approved', 'rejected'], true)) {
-            return [false, 'This step is already completed.'];
-        }
-
-        $definition = $this->db
-            ->where('id', $stepEntry['step_id'])
-            ->get($this->approvalStepsTable)
-            ->row_array();
-
-        $stepEntry['definition'] = $definition;
-
-        if (! $this->can_staff_act_on_step($stepEntry)) {
-            return [false, 'You are not allowed to act on this step.'];
-        }
-
-        $status = $action === 'reject' ? 'rejected' : 'approved';
-
-        $this->db->where('id', $stepEntryId)->update($this->recordStepsTable, [
-            'status'    => $status,
-            'acted_by'  => get_staff_user_id(),
-            'acted_at'  => date('Y-m-d H:i:s'),
-            'comment'   => $comment,
-        ]);
-
-        $record = $this->db
-            ->where('id', $stepEntry['record_id'])
-            ->get($this->recordsTable)
-            ->row_array();
-
-        if ($status === 'approved') {
-            $this->activate_next_record_step($stepEntry['record_id']);
-        } else {
-            $this->update_record_status($stepEntry['record_id'], 'rejected');
-        }
-
-        $this->log_audit($record['form_id'] ?? null, $stepEntry['record_id'], 'step_' . $status, [
-            'step'    => $definition['label'] ?? '',
-            'comment' => $comment,
-        ]);
-
-        return [true, null];
+        return $records;
     }
 
     private function persist_fields(int $formId, array $fields): void
@@ -560,10 +652,10 @@ class Ccx_creator_model extends App_Model
             $workflowId = (int) $existing['id'];
         } else {
             $this->db->insert($this->workflowsTable, [
-                'form_id' => $formId,
-                'name'    => 'On Submit',
-                'event'   => 'on_submit',
-                'is_active' => 1,
+                'form_id'    => $formId,
+                'name'       => 'On Submit',
+                'event'      => 'on_submit',
+                'is_active'  => 1,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
             $workflowId = (int) $this->db->insert_id();
@@ -672,6 +764,27 @@ class Ccx_creator_model extends App_Model
                 $this->db->where_not_in('id', $keptIds);
             }
             $this->db->delete($this->approvalStepsTable);
+        }
+    }
+
+    private function save_webhooks(int $formId, array $webhooks): void
+    {
+        $this->db->where('form_id', $formId)->delete($this->webhooksTable);
+
+        foreach ($webhooks as $webhook) {
+            $url = trim($webhook['url'] ?? '');
+            if ($url === '') {
+                continue;
+            }
+
+            $this->db->insert($this->webhooksTable, [
+                'form_id'    => $formId,
+                'event'      => $webhook['event'] ?? 'on_submit',
+                'url'        => $url,
+                'headers'    => json_encode($webhook['headers'] ?? []),
+                'is_active'  => isset($webhook['is_active']) ? (int) $webhook['is_active'] : 1,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
         }
     }
 
@@ -897,6 +1010,139 @@ class Ccx_creator_model extends App_Model
             . '</table>';
     }
 
+    private function dispatch_webhooks(string $event, array $form, int $recordId, array $payload): void
+    {
+        $webhooks = $this->db
+            ->where('form_id', $form['id'])
+            ->where('event', $event)
+            ->where('is_active', 1)
+            ->get($this->webhooksTable)
+            ->result_array();
+
+        if (empty($webhooks)) {
+            return;
+        }
+
+        foreach ($webhooks as $webhook) {
+            $this->send_webhook_request($webhook, $form, $recordId, $payload);
+        }
+    }
+
+    private function send_webhook_request(array $webhook, array $form, int $recordId, array $payload): void
+    {
+        $body = [
+            'event'  => $webhook['event'],
+            'form'   => [
+                'id'   => $form['id'],
+                'name' => $form['name'],
+                'slug' => $form['slug'],
+            ],
+            'record' => [
+                'id'        => $recordId,
+                'submitted' => date('c'),
+                'data'      => $payload,
+            ],
+        ];
+
+        $headers = ['Content-Type: application/json'];
+        $custom  = json_decode($webhook['headers'] ?? '[]', true);
+        if (is_array($custom)) {
+            foreach ($custom as $key => $value) {
+                $headers[] = $key . ': ' . $value;
+            }
+        }
+
+        $ch = curl_init($webhook['url']);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_POSTFIELDS     => json_encode($body),
+            CURLOPT_TIMEOUT        => 10,
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    private function evaluate_dashboard_widgets(array $widgets): array
+    {
+        $results = [];
+
+        foreach ($widgets as $widget) {
+            $type = $widget['type'] ?? 'stat';
+            if ($type === 'table') {
+                $results[] = $this->compute_table_widget($widget);
+            } else {
+                $results[] = $this->compute_stat_widget($widget);
+            }
+        }
+
+        return $results;
+    }
+
+    private function compute_stat_widget(array $widget): array
+    {
+        $formId    = (int) ($widget['form_id'] ?? 0);
+        $metric    = $widget['metric'] ?? 'count';
+        $fieldKey  = $widget['field_key'] ?? null;
+        $records   = $this->db->where('form_id', $formId)->get($this->recordsTable)->result_array();
+        $values    = [];
+
+        foreach ($records as $record) {
+            $data = json_decode($record['data'] ?? '[]', true) ?? [];
+            if ($fieldKey === null) {
+                $values[] = 1;
+            } elseif (isset($data[$fieldKey]) && is_numeric($data[$fieldKey])) {
+                $values[] = (float) $data[$fieldKey];
+            }
+        }
+
+        $value = 0;
+        if ($metric === 'sum') {
+            $value = array_sum($values);
+        } elseif ($metric === 'avg') {
+            $value = count($values) ? array_sum($values) / count($values) : 0;
+        } else {
+            $value = count($values);
+        }
+
+        return [
+            'type'   => 'stat',
+            'title'  => $widget['title'] ?? 'Stat',
+            'value'  => round($value, 2),
+            'color'  => $widget['color'] ?? '#4a90e2',
+            'metric' => $metric,
+        ];
+    }
+
+    private function compute_table_widget(array $widget): array
+    {
+        $formId  = (int) ($widget['form_id'] ?? 0);
+        $limit   = (int) ($widget['limit'] ?? 5);
+        $records = $this->db
+            ->where('form_id', $formId)
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get($this->recordsTable)
+            ->result_array();
+
+        $rows = [];
+        foreach ($records as $record) {
+            $rows[] = [
+                'id'         => $record['id'],
+                'status'     => $record['status'],
+                'created_at' => _dt($record['created_at']),
+                'data'       => json_decode($record['data'] ?? '[]', true) ?? [],
+            ];
+        }
+
+        return [
+            'type'  => 'table',
+            'title' => $widget['title'] ?? 'Recent records',
+            'rows'  => $rows,
+        ];
+    }
+
     private function replace_tokens(string $text, array $context): string
     {
         foreach ($context as $key => $value) {
@@ -924,7 +1170,7 @@ class Ccx_creator_model extends App_Model
         }
     }
 
-    private function generate_unique_slug(string $value, ?int $ignoreId = null): string
+    private function generate_unique_slug(string $value, ?int $ignoreId = null, ?string $table = null): string
     {
         $slug = slug_it($value);
         if ($slug === '') {
@@ -933,7 +1179,7 @@ class Ccx_creator_model extends App_Model
         $candidate = $slug;
         $suffix    = 1;
 
-        while ($this->slug_exists($candidate, $ignoreId)) {
+        while ($this->slug_exists($candidate, $ignoreId, $table)) {
             $candidate = $slug . '-' . $suffix;
             $suffix++;
         }
@@ -941,14 +1187,16 @@ class Ccx_creator_model extends App_Model
         return $candidate;
     }
 
-    private function slug_exists(string $slug, ?int $ignoreId = null): bool
+    private function slug_exists(string $slug, ?int $ignoreId = null, ?string $table = null): bool
     {
+        $tableName = $table ?? $this->formsTable;
+
         $this->db->where('slug', $slug);
         if ($ignoreId) {
             $this->db->where('id !=', $ignoreId);
         }
 
-        return $this->db->count_all_results($this->formsTable) > 0;
+        return $this->db->count_all_results($tableName) > 0;
     }
 
     private function generate_field_key(string $value, int $formId, ?int $ignoreId = null): string

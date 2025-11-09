@@ -164,4 +164,51 @@ function ccx_creator_run_migrations(): void
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
+
+    if (! $CI->db->table_exists($prefix . 'ccx_creator_dashboards')) {
+        $CI->db->query("CREATE TABLE `{$prefix}ccx_creator_dashboards` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(191) NOT NULL,
+            `slug` VARCHAR(191) NOT NULL,
+            `description` TEXT NULL,
+            `visibility` VARCHAR(20) NOT NULL DEFAULT 'private',
+            `share_token` VARCHAR(64) NULL,
+            `layout` LONGTEXT NULL,
+            `created_by` INT(11) NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` DATETIME NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `dashboard_slug_unique` (`slug`),
+            UNIQUE KEY `dashboard_token_unique` (`share_token`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    if (! $CI->db->table_exists($prefix . 'ccx_creator_webhooks')) {
+        $CI->db->query("CREATE TABLE `{$prefix}ccx_creator_webhooks` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `form_id` INT(11) NOT NULL,
+            `event` VARCHAR(50) NOT NULL,
+            `url` VARCHAR(255) NOT NULL,
+            `headers` TEXT NULL,
+            `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `webhook_form_idx` (`form_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    if (! $CI->db->table_exists($prefix . 'ccx_creator_api_tokens')) {
+        $CI->db->query("CREATE TABLE `{$prefix}ccx_creator_api_tokens` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `form_id` INT(11) NOT NULL,
+            `label` VARCHAR(191) NOT NULL,
+            `token` VARCHAR(64) NOT NULL,
+            `scopes` TEXT NULL,
+            `created_by` INT(11) NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `token_unique` (`token`),
+            KEY `token_form_idx` (`form_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
 }

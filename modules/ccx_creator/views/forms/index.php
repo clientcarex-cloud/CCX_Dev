@@ -8,7 +8,10 @@
                     <div class="panel-body">
                         <div class="clearfix mtop10 mbot20">
                             <h4 class="pull-left bold">CCX Creator</h4>
-                            <div class="pull-right">
+                            <div class="pull-right btn-group">
+                                <a href="<?php echo admin_url('ccx_creator/dashboards'); ?>" class="btn btn-default">
+                                    <i class="fa fa-chart-line"></i> Dashboards
+                                </a>
                                 <a href="<?php echo admin_url('ccx_creator/form'); ?>" class="btn btn-primary">
                                     <i class="fa fa-plus"></i> New Builder
                                 </a>

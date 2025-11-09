@@ -69,6 +69,20 @@ function ccx_creator_register_menu(): void
         'href'     => admin_url('ccx_creator'),
         'position' => 35,
     ]);
+
+    $CI->app_menu->add_sidebar_children_item('ccx-creator', [
+        'slug'     => 'ccx-creator-builders',
+        'name'     => 'Builders',
+        'href'     => admin_url('ccx_creator'),
+        'position' => 1,
+    ]);
+
+    $CI->app_menu->add_sidebar_children_item('ccx-creator', [
+        'slug'     => 'ccx-creator-dashboards',
+        'name'     => 'Dashboards',
+        'href'     => admin_url('ccx_creator/dashboards'),
+        'position' => 2,
+    ]);
 }
 
 /**

@@ -22,6 +22,113 @@ class Ccx_creator extends AdminController
         $this->load->view('ccx_creator/forms/index', $data);
     }
 
+    public function dashboards(): void
+    {
+        if (! (is_admin() || staff_can('view', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $data['title']      = 'Dashboards';
+        $data['dashboards'] = $this->ccx_creator_model->get_dashboards();
+
+        $this->load->view('ccx_creator/dashboards/index', $data);
+    }
+
+    public function dashboard($id = null): void
+    {
+        if (! (is_admin() || staff_can('create', 'ccx_creator') || staff_can('edit', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $dashboardId = $id ? (int) $id : null;
+
+        if ($this->input->post()) {
+            $this->handle_dashboard_save($dashboardId);
+
+            return;
+        }
+
+        $dashboard = $dashboardId ? $this->ccx_creator_model->get_dashboards($dashboardId) : [];
+        if ($dashboardId && empty($dashboard)) {
+            show_404();
+        }
+
+        $forms = $this->ccx_creator_model->get_forms();
+        foreach ($forms as &$form) {
+            $form['fields'] = $this->ccx_creator_model->get_form_fields($form['id']);
+        }
+
+        $data['title']      = $dashboardId ? 'Edit Dashboard' : 'Create Dashboard';
+        $data['dashboard']  = $dashboard;
+        $data['widgets']    = $dashboard['widgets'] ?? [];
+        $data['forms']      = $forms;
+        $data['shareToken'] = $dashboard['share_token'] ?? null;
+
+        $this->load->view('ccx_creator/dashboards/editor', $data);
+    }
+
+    public function dashboard_data($id): void
+    {
+        if (! (is_admin() || staff_can('view', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $payload = $this->ccx_creator_model->get_dashboard_data((int) $id);
+        if (empty($payload)) {
+            show_404();
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($payload));
+    }
+
+    public function dashboard_share($id): void
+    {
+        if (! (is_admin() || staff_can('edit', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $dashboard = $this->ccx_creator_model->get_dashboards((int) $id);
+        if (empty($dashboard) || $dashboard['visibility'] === 'private') {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false]));
+
+            return;
+        }
+
+        $token = $this->ccx_creator_model->ensure_dashboard_share_token((int) $id);
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => $token !== '',
+                'token'   => $token,
+                'url'     => $token ? site_url('ccx_creator_public/dashboard/' . $token) : null,
+            ]));
+    }
+
+    public function dashboard_delete($id): void
+    {
+        if (! (is_admin() || staff_can('delete', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $success = $this->ccx_creator_model->delete_dashboard((int) $id);
+
+        if ($this->input->is_ajax_request()) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => $success]));
+
+            return;
+        }
+
+        set_alert($success ? 'success' : 'danger', $success ? 'Dashboard deleted.' : 'Unable to delete dashboard.');
+        redirect(admin_url('ccx_creator/dashboards'));
+    }
+
     public function form($id = null): void
     {
         if (! (is_admin() || staff_can('create', 'ccx_creator') || staff_can('edit', 'ccx_creator'))) {
@@ -58,6 +165,8 @@ class Ccx_creator extends AdminController
         $data['blocks']       = $this->ccx_creator_model->get_blocks();
         $data['staff']        = $staffMembers;
         $data['staffOptions'] = $this->prepare_staff_options($staffMembers);
+        $data['webhooks']     = $form['webhooks'] ?? [];
+        $data['apiTokens']    = $form['api_tokens'] ?? [];
 
         $this->load->view('ccx_creator/forms/editor', $data);
     }
@@ -155,6 +264,7 @@ class Ccx_creator extends AdminController
         $workflowPayload   = $this->decode_json($this->input->post('workflow_payload'));
         $logicPayload      = $this->decode_json($this->input->post('logic_payload'));
         $approvalsPayload  = $this->decode_json($this->input->post('approvals_payload'));
+        $webhooksPayload   = $this->decode_json($this->input->post('webhooks_payload'));
 
         $fields = $this->normalize_fields_payload($fieldsPayload);
         if (empty($fields)) {
@@ -167,8 +277,9 @@ class Ccx_creator extends AdminController
         $workflow  = is_array($workflowPayload) ? $workflowPayload : [];
         $logic     = $this->normalize_logic_payload($logicPayload);
         $approvals = $this->normalize_approvals_payload($approvalsPayload);
+        $webhooks  = $this->normalize_webhooks_payload($webhooksPayload);
 
-        $result = $this->ccx_creator_model->save_form($formData, $fields, $workflow, $logic, $approvals, $formId);
+        $result = $this->ccx_creator_model->save_form($formData, $fields, $workflow, $logic, $approvals, $webhooks, $formId);
 
         if ($result) {
             set_alert('success', 'Form saved successfully.');
@@ -179,6 +290,38 @@ class Ccx_creator extends AdminController
 
         set_alert('danger', 'Unable to save the form. Please try again.');
         redirect($_SERVER['HTTP_REFERER'] ?? admin_url('ccx_creator'));
+    }
+
+    private function handle_dashboard_save(?int $dashboardId): void
+    {
+        $details = [
+            'name'        => $this->input->post('name', true),
+            'slug'        => $this->input->post('slug', true),
+            'description' => $this->input->post('description', true),
+            'visibility'  => $this->input->post('visibility', true) ?: 'private',
+        ];
+
+        $widgetsPayload = $this->decode_json($this->input->post('widgets_payload'));
+        $widgets        = $this->normalize_dashboard_widgets($widgetsPayload);
+
+        if (empty($widgets)) {
+            set_alert('danger', 'Add at least one widget.');
+            redirect($_SERVER['HTTP_REFERER'] ?? admin_url('ccx_creator/dashboards'));
+
+            return;
+        }
+
+        $result = $this->ccx_creator_model->save_dashboard($details, $widgets, $dashboardId);
+
+        if ($result) {
+            set_alert('success', 'Dashboard saved.');
+            redirect(admin_url('ccx_creator/dashboard/' . $result));
+
+            return;
+        }
+
+        set_alert('danger', 'Unable to save dashboard. Please try again.');
+        redirect($_SERVER['HTTP_REFERER'] ?? admin_url('ccx_creator/dashboards'));
     }
 
     private function decode_json(?string $raw)
@@ -301,6 +444,97 @@ class Ccx_creator extends AdminController
         }
 
         return $normalized;
+    }
+
+    private function normalize_webhooks_payload($hooks): array
+    {
+        if (! is_array($hooks)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($hooks as $hook) {
+            $url = trim($hook['url'] ?? '');
+            if ($url === '') {
+                continue;
+            }
+
+            $headers = $hook['headers'] ?? [];
+            if (is_string($headers)) {
+                $headers = $this->decode_json($headers);
+            }
+
+            $normalized[] = [
+                'url'       => $url,
+                'event'     => $hook['event'] ?? 'on_submit',
+                'headers'   => is_array($headers) ? $headers : [],
+                'is_active' => isset($hook['is_active']) ? (int) $hook['is_active'] : 1,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function normalize_dashboard_widgets($widgets): array
+    {
+        if (! is_array($widgets)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($widgets as $widget) {
+            $formId = (int) ($widget['form_id'] ?? 0);
+            if ($formId <= 0) {
+                continue;
+            }
+
+            $type   = in_array($widget['type'] ?? 'stat', ['stat', 'table'], true) ? $widget['type'] : 'stat';
+            $metric = in_array($widget['metric'] ?? 'count', ['count', 'sum', 'avg'], true) ? $widget['metric'] : 'count';
+
+            $normalized[] = [
+                'title'     => trim($widget['title'] ?? 'Widget'),
+                'type'      => $type,
+                'form_id'   => $formId,
+                'metric'    => $metric,
+                'field_key' => $widget['field_key'] ?? null,
+                'color'     => $widget['color'] ?? '#4a90e2',
+                'limit'     => (int) ($widget['limit'] ?? 5),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    public function create_token($formId): void
+    {
+        if (! (is_admin() || staff_can('create', 'ccx_creator') || staff_can('edit', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $label = $this->input->post('label', true);
+        $token = $this->ccx_creator_model->create_api_token((int) $formId, $label, ['read']);
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => (bool) $token,
+                'token'   => $token,
+            ]));
+    }
+
+    public function revoke_token($tokenId): void
+    {
+        if (! (is_admin() || staff_can('delete', 'ccx_creator'))) {
+            access_denied('ccx_creator');
+        }
+
+        $success = $this->ccx_creator_model->revoke_api_token((int) $tokenId);
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['success' => $success]));
     }
 
     private function prepare_staff_options($staff): array
